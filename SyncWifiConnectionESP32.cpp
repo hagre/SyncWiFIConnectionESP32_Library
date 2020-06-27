@@ -34,11 +34,25 @@ by hagre 2020
 
 SyncWifiConnectionESP32::SyncWifiConnectionESP32 (){
     _wiFiStatus = -5;
-    WIFIWaitForConnectionTimer.setIntervalMs (WIFI_WAIT_FOR_CONNECTION); 
-    WIFIWaitForReconnectingTimer.setIntervalMs (WIFI_WAIT_FOR_RECONNECTION);
+    _WIFIWaitForConnectionTimer.setIntervalMs (WIFI_WAIT_FOR_CONNECTION); 
+    _WIFIWaitForReconnectingTimer.setIntervalMs (WIFI_WAIT_FOR_RECONNECTION);
     #ifdef DEBUG_WIFI_ENABLED
         Serial.begin (DEBUG_WIFI_BOUD); //Debug output, usually USB Port;
     #endif
+}
+
+void SyncWifiConnectionESP32::InitAndBegin (wifi_mode_t m, IPAddress local_ip, IPAddress gateway, IPAddress subnet, IPAddress dns1, const char * hostname, const char* ssid, const char *passphrase){
+    WiFi.mode(m);
+    WiFi.config(local_ip, gateway, subnet, dns1);// secDNS);
+    WiFi.setHostname(hostname);
+    WiFi.begin(ssid, passphrase);
+    #ifdef DEBUG_WIFI_ENABLED
+        Serial.println("WIFI configured");
+        Serial.println(WiFi.localIP());
+        Serial.println(WiFi.getHostname());
+        Serial.println(WiFi.getAutoReconnect());
+        Serial.println(WiFi.status());
+    #endif 
 }
 
 int8_t SyncWifiConnectionESP32::Loop (uint32_t millistime){
@@ -49,18 +63,18 @@ int8_t SyncWifiConnectionESP32::Loop (uint32_t millistime){
         #ifdef DEBUG_WIFI_ENABLED
             Serial.println (" First loop after boot");
         #endif
-        WIFIWaitForConnectionTimer.resetTimingNow (millistime);
+        _WIFIWaitForConnectionTimer.resetTimingNow (millistime);
         _wiFiStatus = 0; //disconnected
     }
     else if (_wiFiStatus == -2){ //First Loop after WIFI just disconnected
-        WIFIWaitForReconnectingTimer.resetTimingNow (millistime);
+        _WIFIWaitForReconnectingTimer.resetTimingNow (millistime);
         _wiFiStatus = -1; //wait to reconnect
         #ifdef DEBUG_WIFI_ENABLED
             Serial.println (" First Loop after WIFI just disconnected");
         #endif
     }
     else if (_wiFiStatus == -1){ //wait to reconnect still disconnected
-        if (WIFIWaitForReconnectingTimer.getStatus(millistime) >= 0){ //Chech if ready for reconnect
+        if (_WIFIWaitForReconnectingTimer.getStatus(millistime) >= 0){ //Chech if ready for reconnect
             _wiFiStatus = 0;  //disconnected
             #ifdef DEBUG_WIFI_ENABLED
                 Serial.println (" Timer elapsed - time to connect again");
@@ -69,7 +83,7 @@ int8_t SyncWifiConnectionESP32::Loop (uint32_t millistime){
     }
     else if (_wiFiStatus == 0){ //disconnected and time to connect again
         WiFi.begin(); //WiFi.begin(YOUR_WIFI_SSID, YOUR_WIFI_PASSWORD);
-        WIFIWaitForConnectionTimer.resetTimingNow (millistime); //Start new timing for NEW connection
+        _WIFIWaitForConnectionTimer.resetTimingNow (millistime); //Start new timing for NEW connection
         _wiFiStatus = 1; //connecting
         #ifdef DEBUG_WIFI_ENABLED
             Serial.println (" Starting WIFI connection");
@@ -82,7 +96,7 @@ int8_t SyncWifiConnectionESP32::Loop (uint32_t millistime){
                 Serial.println (" Just WIFI Connected");
             #endif  
         }
-        else if (WIFIWaitForConnectionTimer.getStatus(millistime) >= 0){ //Chech if try to connect takes too long
+        else if (_WIFIWaitForConnectionTimer.getStatus(millistime) >= 0){ //Chech if try to connect takes too long
             WiFi.disconnect();
             _wiFiStatus = -2; //just disconnected
             #ifdef DEBUG_WIFI_ENABLED
