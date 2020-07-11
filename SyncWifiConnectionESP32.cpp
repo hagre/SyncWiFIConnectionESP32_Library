@@ -42,10 +42,12 @@ SyncWifiConnectionESP32::SyncWifiConnectionESP32 (){
 }
 
 void SyncWifiConnectionESP32::InitAndBegin (wifi_mode_t m, IPAddress local_ip, IPAddress gateway, IPAddress subnet, IPAddress dns1, const char * hostname, const char* ssid, const char *passphrase){
+    _ssid = ssid;
+    _passphrase = passphrase;
     WiFi.mode(m);
     WiFi.config(local_ip, gateway, subnet, dns1);// secDNS);
     WiFi.setHostname(hostname);
-    WiFi.begin(ssid, passphrase);
+    WiFi.begin(_ssid, _passphrase);
     #ifdef DEBUG_WIFI_ENABLED
         Serial.println("WIFI configured");
         Serial.println(WiFi.localIP());
@@ -82,7 +84,7 @@ int8_t SyncWifiConnectionESP32::Loop (uint32_t millistime){
         }
     }
     else if (_wiFiStatus == 0){ //disconnected and time to connect again
-        WiFi.begin(); //WiFi.begin(YOUR_WIFI_SSID, YOUR_WIFI_PASSWORD);
+        WiFi.begin(_ssid, _passphrase);
         _WIFIWaitForConnectionTimer.resetTimingNow (millistime); //Start new timing for NEW connection
         _wiFiStatus = 1; //connecting
         #ifdef DEBUG_WIFI_ENABLED

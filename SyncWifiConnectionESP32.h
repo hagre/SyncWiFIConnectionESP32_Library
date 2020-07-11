@@ -18,8 +18,6 @@ by hagre 2020
 #include <WiFi.h>
 #include <verysimpletimer.h> 
 
-
-
 class SyncWifiConnectionESP32
 {
 public:
@@ -29,8 +27,11 @@ public:
 
  
 private:
-    //int8_t _wIFIStatus;
     int8_t _wiFiStatus;
+
+    const char* _ssid;
+    const char* _passphrase;
+
     VerySimpleTimer _WIFIWaitForConnectionTimer;
     VerySimpleTimer _WIFIWaitForReconnectingTimer;
 };
