@@ -18,6 +18,20 @@ by hagre 2020
 #include <WiFi.h>
 #include <verysimpletimer.h> 
 
+#ifndef WIFI_WAIT_FOR_CONNECTION
+    #define WIFI_WAIT_FOR_CONNECTION 10000 //ms time
+#endif
+#ifndef WIFI_WAIT_FOR_RECONNECTION
+    #define WIFI_WAIT_FOR_RECONNECTION 5000 //ms time
+#endif
+
+//switch ASAP off
+//#define DEBUG_WIFI_ENABLED 
+
+#ifdef DEBUG_WIFI_ENABLED
+    #define DEBUG_WIFI_BOUD 230400 //config as required
+#endif
+
 class SyncWifiConnectionESP32
 {
 public:
