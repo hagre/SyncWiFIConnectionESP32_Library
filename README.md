@@ -20,5 +20,16 @@ require #include <verysimpletimer.h>  https://github.com/hagre/VerySimpleTimer_L
 
 3 = still connected
 
+
+
+    SyncWifiConnectionESP32();
+    
+    void InitAndBegin (wifi_mode_t m, IPAddress local_ip, IPAddress gateway, IPAddress subnet, IPAddress dns1, const char * hostname, const char* ssid, const char *passphrase);
+    int8_t Loop (uint32_t millistime);
+
+    void setWifiDebugSerial (HardwareSerial* wifiDebugSerial);
+
+
+
 GPLv3
 by hagre 2020
