@@ -1,5 +1,6 @@
 V 1.0 - first init
 V 1.1 - ADD InitAndBegin ();
         privat Variable add _ssid _passphrase
+V1.2 - debug speed and serial config
 		
 

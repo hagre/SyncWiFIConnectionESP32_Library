@@ -26,21 +26,27 @@ by hagre 2020
 #endif
 
 //switch ASAP off
-//#define DEBUG_WIFI_ENABLED 
+//#define DEBUG_MY_WIFI_ENABLED 
 
-#ifdef DEBUG_WIFI_ENABLED
-    #define DEBUG_WIFI_BOUD 230400 //config as required
-#endif
+#include <HardwareSerial.h>
+
 
 class SyncWifiConnectionESP32
 {
 public:
     SyncWifiConnectionESP32();
+    
     void InitAndBegin (wifi_mode_t m, IPAddress local_ip, IPAddress gateway, IPAddress subnet, IPAddress dns1, const char * hostname, const char* ssid, const char *passphrase);
     int8_t Loop (uint32_t millistime);
 
+    void setWifiDebugSerial (HardwareSerial* wifiDebugSerial);
+
+
  
 private:
+
+    HardwareSerial* _wifiDebugSerial;
+
     int8_t _wiFiStatus;
 
     const char* _ssid;

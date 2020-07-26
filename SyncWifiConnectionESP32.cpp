@@ -22,9 +22,10 @@ SyncWifiConnectionESP32::SyncWifiConnectionESP32 (){
     _wiFiStatus = -5;
     _WIFIWaitForConnectionTimer.setIntervalMs (WIFI_WAIT_FOR_CONNECTION); 
     _WIFIWaitForReconnectingTimer.setIntervalMs (WIFI_WAIT_FOR_RECONNECTION);
-    #ifdef DEBUG_WIFI_ENABLED
-        Serial.begin (DEBUG_WIFI_BOUD); //Debug output, usually USB Port;
-    #endif
+}
+
+void SyncWifiConnectionESP32::setWifiDebugSerial (HardwareSerial* wifiDebugSerial){
+    _wifiDebugSerial = wifiDebugSerial;
 }
 
 void SyncWifiConnectionESP32::InitAndBegin (wifi_mode_t m, IPAddress local_ip, IPAddress gateway, IPAddress subnet, IPAddress dns1, const char * hostname, const char* ssid, const char *passphrase){
@@ -34,12 +35,15 @@ void SyncWifiConnectionESP32::InitAndBegin (wifi_mode_t m, IPAddress local_ip, I
     WiFi.config(local_ip, gateway, subnet, dns1);// secDNS);
     WiFi.setHostname(hostname);
     WiFi.begin(_ssid, _passphrase);
-    #ifdef DEBUG_WIFI_ENABLED
-        Serial.println("WIFI configured");
-        Serial.println(WiFi.localIP());
-        Serial.println(WiFi.getHostname());
-        Serial.println(WiFi.getAutoReconnect());
-        Serial.println(WiFi.status());
+    #ifdef DEBUG_MY_WIFI_ENABLED
+        _wifiDebugSerial->println("WIFI configured");
+        _wifiDebugSerial->println(WiFi.localIP());
+        _wifiDebugSerial->println(WiFi.getHostname());
+        _wifiDebugSerial->println(WiFi.getAutoConnect());
+        _wifiDebugSerial->println(WiFi.getAutoReconnect());
+        _wifiDebugSerial->println(WiFi.dnsIP());
+        _wifiDebugSerial->println(WiFi.broadcastIP());
+        _wifiDebugSerial->println(WiFi.status());
     #endif 
 }
 
@@ -48,8 +52,8 @@ int8_t SyncWifiConnectionESP32::Loop (uint32_t millistime){
     int8_t WIFIStatus = WiFi.status();
 
     if (_wiFiStatus == -5){ //First Loop after boot
-        #ifdef DEBUG_WIFI_ENABLED
-            Serial.println (" First loop after boot");
+        #ifdef DEBUG_MY_WIFI_ENABLED
+            _wifiDebugSerial->println (" First loop after boot");
         #endif
         _WIFIWaitForConnectionTimer.resetTimingNow (millistime);
         _wiFiStatus = 0; //disconnected
@@ -57,15 +61,15 @@ int8_t SyncWifiConnectionESP32::Loop (uint32_t millistime){
     else if (_wiFiStatus == -2){ //First Loop after WIFI just disconnected
         _WIFIWaitForReconnectingTimer.resetTimingNow (millistime);
         _wiFiStatus = -1; //wait to reconnect
-        #ifdef DEBUG_WIFI_ENABLED
-            Serial.println (" First Loop after WIFI just disconnected");
+        #ifdef DEBUG_MY_WIFI_ENABLED
+            _wifiDebugSerial->println (" First Loop after WIFI just disconnected");
         #endif
     }
     else if (_wiFiStatus == -1){ //wait to reconnect still disconnected
         if (_WIFIWaitForReconnectingTimer.getStatus(millistime) >= 0){ //Chech if ready for reconnect
             _wiFiStatus = 0;  //disconnected
-            #ifdef DEBUG_WIFI_ENABLED
-                Serial.println (" Timer elapsed - time to connect again");
+            #ifdef DEBUG_MY_WIFI_ENABLED
+                _wifiDebugSerial->println (" Timer elapsed - time to connect again");
             #endif
         }
     }
@@ -73,45 +77,54 @@ int8_t SyncWifiConnectionESP32::Loop (uint32_t millistime){
         WiFi.begin(_ssid, _passphrase);
         _WIFIWaitForConnectionTimer.resetTimingNow (millistime); //Start new timing for NEW connection
         _wiFiStatus = 1; //connecting
-        #ifdef DEBUG_WIFI_ENABLED
-            Serial.println (" Starting WIFI connection");
+        #ifdef DEBUG_MY_WIFI_ENABLED
+            _wifiDebugSerial->println (" Starting WIFI connection");
         #endif
     }
     else if (_wiFiStatus == 1){ //connecting
         if (WIFIStatus == WL_CONNECTED){ //WIFI connected
             _wiFiStatus = 2; //connected to LAN
-            #ifdef DEBUG_WIFI_ENABLED
-                Serial.println (" Just WIFI Connected");
+            #ifdef DEBUG_MY_WIFI_ENABLED
+                _wifiDebugSerial->println (" Just WIFI Connected");
+                IPAddress result;
+                int err = WiFi.hostByName("mqtt.haasenserver.at", result) ;
+                if(err == 1){
+                        _wifiDebugSerial->print("Ip address: ");
+                        _wifiDebugSerial->println(result);
+                } else {
+                        _wifiDebugSerial->print("Error code: ");
+                        _wifiDebugSerial->println(err);
+                }
             #endif  
         }
         else if (_WIFIWaitForConnectionTimer.getStatus(millistime) >= 0){ //Chech if try to connect takes too long
             WiFi.disconnect();
             _wiFiStatus = -2; //just disconnected
-            #ifdef DEBUG_WIFI_ENABLED
-                Serial.println (" It took to long => WIFI Disconnect");
+            #ifdef DEBUG_MY_WIFI_ENABLED
+                _wifiDebugSerial->println (" It took to long => WIFI Disconnect");
             #endif
         }
         else {
-            #ifdef DEBUG_WIFI_ENABLED
-                //Serial.print (".");
+            #ifdef DEBUG_MY_WIFI_ENABLED
+                _wifiDebugSerial->print (".");
             #endif
         }
     }
     else if (_wiFiStatus == 2){ //just connected
         _wiFiStatus = 3; //still connected to LAN
-        #ifdef DEBUG_WIFI_ENABLED
-            Serial.println (" Again, this important info: WIFI connected");
+        #ifdef DEBUG_MY_WIFI_ENABLED
+            _wifiDebugSerial->println (" Again, this important info: WIFI connected");
         #endif 
     }
     else if (_wiFiStatus == 3){ //still connected
-        #ifdef DEBUG_WIFI_ENABLED
-            //Serial.println ("WIFI still connected");
+        #ifdef DEBUG_MY_WIFI_ENABLED
+            _wifiDebugSerial->println ("WIFI still connected");
         #endif
         if (WIFIStatus != WL_CONNECTED){ //WIFI NOT connected anymore
             WiFi.disconnect();
             _wiFiStatus = -2; //just disconnected
-            #ifdef DEBUG_WIFI_ENABLED
-                Serial.println (" WIFI connection lost!");
+            #ifdef DEBUG_MY_WIFI_ENABLED
+                _wifiDebugSerial->println (" WIFI connection lost!");
             #endif
         }
     }
