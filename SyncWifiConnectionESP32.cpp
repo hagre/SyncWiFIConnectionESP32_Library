@@ -86,15 +86,6 @@ int8_t SyncWifiConnectionESP32::Loop (uint32_t millistime){
             _wiFiStatus = 2; //connected to LAN
             #ifdef DEBUG_MY_WIFI_ENABLED
                 _wifiDebugSerial->println (" Just WIFI Connected");
-                IPAddress result;
-                int err = WiFi.hostByName("mqtt.haasenserver.at", result) ;
-                if(err == 1){
-                        _wifiDebugSerial->print("Ip address: ");
-                        _wifiDebugSerial->println(result);
-                } else {
-                        _wifiDebugSerial->print("Error code: ");
-                        _wifiDebugSerial->println(err);
-                }
             #endif  
         }
         else if (_WIFIWaitForConnectionTimer.getStatus(millistime) >= 0){ //Chech if try to connect takes too long
