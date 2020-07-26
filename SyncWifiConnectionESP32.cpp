@@ -22,39 +22,78 @@ SyncWifiConnectionESP32::SyncWifiConnectionESP32 (){
     _wiFiStatus = -5;
     _WIFIWaitForConnectionTimer.setIntervalMs (WIFI_WAIT_FOR_CONNECTION); 
     _WIFIWaitForReconnectingTimer.setIntervalMs (WIFI_WAIT_FOR_RECONNECTION);
+    _reconnectCounter = 0;
 }
 
 void SyncWifiConnectionESP32::setWifiDebugSerial (HardwareSerial* wifiDebugSerial){
     _wifiDebugSerial = wifiDebugSerial;
 }
 
-void SyncWifiConnectionESP32::InitAndBegin (wifi_mode_t m, IPAddress local_ip, IPAddress gateway, IPAddress subnet, IPAddress dns1, const char * hostname, const char* ssid, const char *passphrase){
+void SyncWifiConnectionESP32::init (wifi_mode_t m, IPAddress local_ip, const char * hostname, const char* ssid, const char *passphrase){
     _ssid = ssid;
     _passphrase = passphrase;
-    WiFi.mode(m);
-    WiFi.config(local_ip, gateway, subnet, dns1);// secDNS);
-    WiFi.setHostname(hostname);
-    WiFi.begin(_ssid, _passphrase);
-    #ifdef DEBUG_MY_WIFI_ENABLED
-        _wifiDebugSerial->println("WIFI configured");
-        _wifiDebugSerial->println(WiFi.localIP());
-        _wifiDebugSerial->println(WiFi.getHostname());
-        _wifiDebugSerial->println(WiFi.getAutoConnect());
-        _wifiDebugSerial->println(WiFi.getAutoReconnect());
-        _wifiDebugSerial->println(WiFi.dnsIP());
-        _wifiDebugSerial->println(WiFi.broadcastIP());
-        _wifiDebugSerial->println(WiFi.status());
-    #endif 
+    _hostname = hostname;
+    _localIP = local_ip; 
+    _m = m;
+    _reconnectCounter = 0;
 }
 
-int8_t SyncWifiConnectionESP32::Loop (uint32_t millistime){
+int8_t SyncWifiConnectionESP32::loop (uint32_t millistime){
 
     int8_t WIFIStatus = WiFi.status();
 
     if (_wiFiStatus == -5){ //First Loop after boot
+
+        _reconnectCounter = 0;
+
         #ifdef DEBUG_MY_WIFI_ENABLED
-            _wifiDebugSerial->println (" First loop after boot");
+            _wifiDebugSerial->println (" First loop after boot or WIFI total reset");
         #endif
+
+        WiFi.mode(WIFI_OFF);
+        WiFi.setHostname(_hostname);
+        WiFi.begin(_ssid, _passphrase);
+
+        while (WiFi.status() != WL_CONNECTED) {
+            delay(500);
+            #ifdef DEBUG_MY_WIFI_ENABLED
+                _wifiDebugSerial->println (":");
+            #endif
+        }
+
+        #ifdef DEBUG_MY_WIFI_ENABLED
+            _wifiDebugSerial->println("WIFI dhcp configured");
+            _wifiDebugSerial->println(WiFi.localIP());
+            _wifiDebugSerial->println(WiFi.getHostname());
+            _wifiDebugSerial->println(WiFi.getAutoConnect());
+            _wifiDebugSerial->println(WiFi.getAutoReconnect());
+            _wifiDebugSerial->println(WiFi.gatewayIP());
+            _wifiDebugSerial->println(WiFi.dnsIP());
+            _wifiDebugSerial->println(WiFi.broadcastIP());
+            _wifiDebugSerial->println(WiFi.status());
+        #endif 
+
+        _gatewayIP = WiFi.gatewayIP();
+        _subnetIP = WiFi.subnetMask(); 
+        _dnsIP = WiFi.dnsIP();
+        WiFi.mode(WIFI_OFF); 
+        WiFi.mode(_m);
+        WiFi.setHostname(_hostname);
+        WiFi.config(_localIP, _gatewayIP, _subnetIP, _dnsIP);// secDNS);
+        WiFi.begin(_ssid, _passphrase);
+
+        #ifdef DEBUG_MY_WIFI_ENABLED
+            _wifiDebugSerial->println("WIFI manual configured");
+            _wifiDebugSerial->println(WiFi.localIP());
+            _wifiDebugSerial->println(WiFi.getHostname());
+            _wifiDebugSerial->println(WiFi.getAutoConnect());
+            _wifiDebugSerial->println(WiFi.getAutoReconnect());
+            _wifiDebugSerial->println(WiFi.gatewayIP());
+            _wifiDebugSerial->println(WiFi.dnsIP());
+            _wifiDebugSerial->println(WiFi.broadcastIP());
+            _wifiDebugSerial->println(WiFi.status());
+        #endif 
+
         _WIFIWaitForConnectionTimer.resetTimingNow (millistime);
         _wiFiStatus = 0; //disconnected
     }
@@ -66,7 +105,14 @@ int8_t SyncWifiConnectionESP32::Loop (uint32_t millistime){
         #endif
     }
     else if (_wiFiStatus == -1){ //wait to reconnect still disconnected
+        if (_reconnectCounter > MAX_RECONNECT_COUNTER){
+            _wiFiStatus = -5;  //reset like first Boot
+            #ifdef DEBUG_MY_WIFI_ENABLED
+                _wifiDebugSerial->println (" now it is time to reset the wifi completely");
+            #endif
+        }
         if (_WIFIWaitForReconnectingTimer.getStatus(millistime) >= 0){ //Chech if ready for reconnect
+            _reconnectCounter++;
             _wiFiStatus = 0;  //disconnected
             #ifdef DEBUG_MY_WIFI_ENABLED
                 _wifiDebugSerial->println (" Timer elapsed - time to connect again");

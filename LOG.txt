@@ -2,5 +2,6 @@ V 1.0 - first init
 V 1.1 - ADD InitAndBegin ();
         privat Variable add _ssid _passphrase
 V1.2 - debug speed and serial config
+v1.3 - due to Android >pie gateway ip is changing randomly, so first dhcp is used to get IPs, the wifi is stopped and manual configured again
 		
 

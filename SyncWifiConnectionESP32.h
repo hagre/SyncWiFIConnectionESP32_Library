@@ -24,6 +24,9 @@ by hagre 2020
 #ifndef WIFI_WAIT_FOR_RECONNECTION
     #define WIFI_WAIT_FOR_RECONNECTION 5000 //ms time
 #endif
+#ifndef MAX_RECONNECT_COUNTER
+    #define MAX_RECONNECT_COUNTER 10 //times
+#endif
 
 //switch ASAP off
 //#define DEBUG_MY_WIFI_ENABLED 
@@ -36,8 +39,8 @@ class SyncWifiConnectionESP32
 public:
     SyncWifiConnectionESP32();
     
-    void InitAndBegin (wifi_mode_t m, IPAddress local_ip, IPAddress gateway, IPAddress subnet, IPAddress dns1, const char * hostname, const char* ssid, const char *passphrase);
-    int8_t Loop (uint32_t millistime);
+    void init (wifi_mode_t m, IPAddress local_ip, const char * hostname, const char* ssid, const char *passphrase);
+    int8_t loop (uint32_t millistime);
 
     void setWifiDebugSerial (HardwareSerial* wifiDebugSerial);
 
@@ -48,9 +51,18 @@ private:
     HardwareSerial* _wifiDebugSerial;
 
     int8_t _wiFiStatus;
+    uint16_t _reconnectCounter;
+
+    IPAddress _localIP; 
+    IPAddress _gatewayIP; 
+    IPAddress _subnetIP; 
+    IPAddress _dnsIP;
 
     const char* _ssid;
     const char* _passphrase;
+    const char* _hostname;
+
+    wifi_mode_t _m;
 
     VerySimpleTimer _WIFIWaitForConnectionTimer;
     VerySimpleTimer _WIFIWaitForReconnectingTimer;
